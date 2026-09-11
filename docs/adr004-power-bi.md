@@ -1,10 +1,12 @@
 # ADR-004: [PowerBI]
 
-**Status:** [Aceito]  |  **Data:** [12-09-2025]  |  **Autores:** [Gian (Desenvolvedor)]
+**Status:** [Aceito] | **Data:** [12-09-2025] | **Autores:** [Gian
+(Desenvolvedor)]
 
 ## Contexto
 
-Transformar dados brutos de várias fontes em relatórios visuais, interativos e fáceis de entender para a tomada de decisões
+Transformar dados brutos de várias fontes em relatórios visuais, interativos e
+fáceis de entender para a tomada de decisões
 
 ## Decisão
 

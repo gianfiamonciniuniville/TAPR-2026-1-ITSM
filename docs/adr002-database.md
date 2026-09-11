@@ -1,6 +1,7 @@
 # ADR-002: [Database]
 
-**Status:** [Aceito]  |  **Data:** [12-09-2025]  |  **Autores:** [Gian (Desenvolvedor)]
+**Status:** [Aceito] | **Data:** [12-09-2025] | **Autores:** [Gian
+(Desenvolvedor)]
 
 ## Contexto
 
@@ -8,7 +9,8 @@ Gerenciar e armazenar dados de forma segura em uma plataforma nuvem.
 
 ## Decisão
 
-Foi decidido usar AZURE DATABASE para melhor gerenciamento e sincronização com a plataforma nuvem;
+Foi decidido usar AZURE DATABASE para melhor gerenciamento e sincronização com a
+plataforma nuvem;
 
 ## Consequências
 

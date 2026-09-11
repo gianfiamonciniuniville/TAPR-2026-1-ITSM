@@ -1,10 +1,12 @@
 # ADR-003: [Azure Function]
 
-**Status:** [Aceito]  |  **Data:** [12-09-2025]  |  **Autores:** [Gian (Desenvolvedor)]
+**Status:** [Aceito] | **Data:** [12-09-2025] | **Autores:** [Gian
+(Desenvolvedor)]
 
 ## Contexto
 
-Precisamos de um SAAS que tinha fácil configuração e na execução de scripts pequenos, porém separados.
+Precisamos de um SAAS que tinha fácil configuração e na execução de scripts
+pequenos, porém separados.
 
 ## Decisão
 

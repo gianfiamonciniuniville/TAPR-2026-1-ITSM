@@ -7,7 +7,7 @@ IT Service Management
 > Gian Carlo Fiamoncini, Edson Luis Rosa Junior, Gustavo Pereira e Carlos
 > Alberto Junior
 
-___
+---
 
 # Atividade de Documentação Arquitetural
 
@@ -21,11 +21,12 @@ ___
 ### C4 Diagram
 
 - [Diagram DRAWIO](./docs/c4-contexto.drawio)
+
 #### C4 Imagem
 
 - ![Diagram](./docs/c4-contexto.png)
 
-___
+---
 
 # Escopo
 
@@ -54,4 +55,3 @@ Para documentar o dashboard Power BI, seguem três prints:
 ## Encerrados
 
 ![Dashboard Power BI - Print 3](docs/antique/dashboard-encerrados.png)
-

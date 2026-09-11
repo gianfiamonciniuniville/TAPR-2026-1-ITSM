@@ -1,16 +1,19 @@
 # ADR-001: [Cloud]
 
-**Status:** [Aceito]  |  **Data:** [12-09-2025]  |  **Autores:** [Gian (Desenvolvedor)]
+**Status:** [Aceito] | **Data:** [12-09-2025] | **Autores:** [Gian
+(Desenvolvedor)]
 
 ## Contexto
 
-Precisamos de uma plataforma de nuvem robusta e popular que suportasse alta segurança e flexibilidade na execução e deploy do projeto. 
+Precisamos de uma plataforma de nuvem robusta e popular que suportasse alta
+segurança e flexibilidade na execução e deploy do projeto.
 
-Como precisamos de algumas azure functions para executar scripts pequenos, porém separados. Integração com GitHub Actions para CI\CD.
+Como precisamos de algumas azure functions para executar scripts pequenos, porém
+separados. Integração com GitHub Actions para CI\CD.
 
 ## Decisão
 
-Foi decidido Azure por causa da melhor usabilidade e preço. 
+Foi decidido Azure por causa da melhor usabilidade e preço.
 
 ## Consequências
 
