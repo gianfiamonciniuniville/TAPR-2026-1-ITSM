@@ -20,7 +20,11 @@ Foi decidido Azure Functions por causa da facilidade;
 
 (-) Rodar em produção
 
-(-) Testar Manualmente
+(-) A integração com Azure e SQL Server requer ambiente configurado.
+
+O fluxo de extração possui testes unitários locais após a aplicação de
+[Template Method (ADR-005)](./adr005-template-method.md). Os timers delegam
+a execução às subclasses de `SqlExtraction`.
 
 ## Alternativas rejeitadas
 

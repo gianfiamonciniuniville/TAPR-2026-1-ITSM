@@ -1,54 +1,22 @@
-import pyodbc
-import os
-import logging
 import azure.functions as func
+
+from etl.extraction import SqlExtraction
 
 app = func.Blueprint()
 
 
-def get_source_connection() -> pyodbc.Connection:
-    conn_str = (
-        "DRIVER={ODBC Driver 18 for SQL Server};"
-        f"SERVER={os.getenv('SQL_SERVER_SOURCE')};"
-        f"DATABASE={os.getenv('SQL_DATABASE_SOURCE')};"
-        f"UID={os.getenv('SQL_USER_SOURCE')};"
-        f"PWD={os.getenv('SQL_PASSWORD_SOURCE')};"
-        "Encrypt=yes;"
-        "TrustServerCertificate=no;"
-        "Connection Timeout=30;"
-    )
-    return pyodbc.connect(conn_str)
-
-
-def get_target_connection() -> pyodbc.Connection:
-    conn_str = (
-        "DRIVER={ODBC Driver 18 for SQL Server};"
-        f"SERVER={os.getenv('SQL_SERVER_TARGET')};"
-        f"DATABASE={os.getenv('SQL_DATABASE_TARGET')};"
-        f"UID={os.getenv('SQL_USER_TARGET')};"
-        f"PWD={os.getenv('SQL_PASSWORD_TARGET')};"
-        "Encrypt=yes;"
-        "TrustServerCertificate=no;"
-        "Connection Timeout=30;"
-    )
-    return pyodbc.connect(conn_str)
-
-
-@app.timer_trigger(schedule="0 20 12 * * *", arg_name="myTimer", run_on_startup=False,
-                   use_monitor=False)
-def extract_chamado_sla(myTimer: func.TimerRequest) -> None:
-    """
-    Lê todos os registros de SLA por chamado e faz upsert em corptech.chamado_sla.
-
+class ChamadoSlaExtraction(SqlExtraction):
+    """Lê todos os registros de SLA por chamado e faz upsert em corptech.chamado_sla.
+    
     FKs resolvidas por chave natural:
       - id_chamado <- nr_chamado
       - id_sla     <- cd_sla
-
+    
     Chave do MERGE: cd_registro_origem (identificador único vindo do sistema de origem).
     """
-    logging.info("extract_chamado_sla: iniciando.")
 
-    SELECT_SQL = """
+    def select_sql(self) -> str:
+        return """
         SELECT
             c.nr_chamado,
             s.cd_sla,
@@ -66,7 +34,8 @@ def extract_chamado_sla(myTimer: func.TimerRequest) -> None:
         INNER JOIN itsm.sla     AS s ON s.id_sla     = cs.id_sla
     """
 
-    UPSERT_SQL = """
+    def upsert_sql(self) -> str:
+        return """
         MERGE corptech.chamado_sla AS tgt
         USING (
             SELECT
@@ -117,20 +86,8 @@ def extract_chamado_sla(myTimer: func.TimerRequest) -> None:
             );
     """
 
-    try:
-        with get_source_connection() as src_conn:
-            rows = src_conn.cursor().execute(SELECT_SQL).fetchall()
 
-        logging.info(f"extract_chamado_sla: {len(rows)} linha(s) lida(s) da origem.")
-
-        with get_target_connection() as dst_conn:
-            cursor = dst_conn.cursor()
-            cursor.fast_executemany = True
-            cursor.executemany(UPSERT_SQL, rows)
-            dst_conn.commit()
-
-        logging.info("extract_chamado_sla: upsert concluído.")
-
-    except Exception as e:
-        logging.error(f"extract_chamado_sla: erro – {e}")
-        raise
+@app.timer_trigger(schedule="0 20 12 * * *", arg_name="myTimer", run_on_startup=False,
+                   use_monitor=False)
+def extract_chamado_sla(myTimer: func.TimerRequest) -> None:
+    ChamadoSlaExtraction().run()

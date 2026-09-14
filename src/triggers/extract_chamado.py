@@ -1,45 +1,13 @@
-import pyodbc
-import os
-import logging
 import azure.functions as func
+
+from etl.extraction import SqlExtraction
 
 app = func.Blueprint()
 
 
-def get_source_connection() -> pyodbc.Connection:
-    conn_str = (
-        "DRIVER={ODBC Driver 18 for SQL Server};"
-        f"SERVER={os.getenv('SQL_SERVER_SOURCE')};"
-        f"DATABASE={os.getenv('SQL_DATABASE_SOURCE')};"
-        f"UID={os.getenv('SQL_USER_SOURCE')};"
-        f"PWD={os.getenv('SQL_PASSWORD_SOURCE')};"
-        "Encrypt=yes;"
-        "TrustServerCertificate=no;"
-        "Connection Timeout=30;"
-    )
-    return pyodbc.connect(conn_str)
-
-
-def get_target_connection() -> pyodbc.Connection:
-    conn_str = (
-        "DRIVER={ODBC Driver 18 for SQL Server};"
-        f"SERVER={os.getenv('SQL_SERVER_TARGET')};"
-        f"DATABASE={os.getenv('SQL_DATABASE_TARGET')};"
-        f"UID={os.getenv('SQL_USER_TARGET')};"
-        f"PWD={os.getenv('SQL_PASSWORD_TARGET')};"
-        "Encrypt=yes;"
-        "TrustServerCertificate=no;"
-        "Connection Timeout=30;"
-    )
-    return pyodbc.connect(conn_str)
-
-
-@app.timer_trigger(schedule="0 10 12 * * *", arg_name="myTimer", run_on_startup=False,
-                   use_monitor=False)
-def extract_chamado(myTimer: func.TimerRequest) -> None:
-    """
-    Lê todos os chamados da origem e faz upsert em corptech.chamado.
-
+class ChamadoExtraction(SqlExtraction):
+    """Lê todos os chamados da origem e faz upsert em corptech.chamado.
+    
     FKs resolvidas por chave natural:
       - id_analista_atual      <- cd_analista
       - id_reporter            <- cd_solicitante
@@ -47,9 +15,9 @@ def extract_chamado(myTimer: func.TimerRequest) -> None:
       - id_cliente_organizacao <- cd_cliente_organizacao
       - id_fila_atual          <- cd_fila
     """
-    logging.info("extract_chamado: iniciando.")
 
-    SELECT_SQL = """
+    def select_sql(self) -> str:
+        return """
         SELECT
             c.nr_chamado,
             c.ds_tipo_chamado,
@@ -77,7 +45,8 @@ def extract_chamado(myTimer: func.TimerRequest) -> None:
         LEFT JOIN  itsm.fila                 AS f   ON f.id_fila                 = c.id_fila_atual
     """
 
-    UPSERT_SQL = """
+    def upsert_sql(self) -> str:
+        return """
         MERGE corptech.chamado AS tgt
         USING (
             SELECT
@@ -152,20 +121,8 @@ def extract_chamado(myTimer: func.TimerRequest) -> None:
             );
     """
 
-    try:
-        with get_source_connection() as src_conn:
-            rows = src_conn.cursor().execute(SELECT_SQL).fetchall()
 
-        logging.info(f"extract_chamado: {len(rows)} linha(s) lida(s) da origem.")
-
-        with get_target_connection() as dst_conn:
-            cursor = dst_conn.cursor()
-            cursor.fast_executemany = True
-            cursor.executemany(UPSERT_SQL, rows)
-            dst_conn.commit()
-
-        logging.info("extract_chamado: upsert concluído.")
-
-    except Exception as e:
-        logging.error(f"extract_chamado: erro – {e}")
-        raise
+@app.timer_trigger(schedule="0 10 12 * * *", arg_name="myTimer", run_on_startup=False,
+                   use_monitor=False)
+def extract_chamado(myTimer: func.TimerRequest) -> None:
+    ChamadoExtraction().run()

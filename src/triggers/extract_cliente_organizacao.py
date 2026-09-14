@@ -1,16 +1,13 @@
-import logging
 import azure.functions as func
-import os
-import pyodbc
+
+from etl.extraction import SqlExtraction
 
 app = func.Blueprint()
 
-@app.timer_trigger(schedule="0 0 12 * * *", arg_name="myTimer", run_on_startup=False,
-                   use_monitor=False)
-def extract_cliente_organizacao(myTimer: func.TimerRequest) -> None:
-    logging.info("extract_cliente_organizacao: iniciando.")
- 
-    SELECT_SQL = """
+
+class ClienteOrganizacaoExtraction(SqlExtraction):
+    def select_sql(self) -> str:
+        return """
         SELECT
             cd_cliente_organizacao,
             nm_cliente_organizacao,
@@ -22,8 +19,9 @@ def extract_cliente_organizacao(myTimer: func.TimerRequest) -> None:
             cd_registro_origem
         FROM itsm.cliente_organizacao
     """
- 
-    UPSERT_SQL = """
+
+    def upsert_sql(self) -> str:
+        return """
         MERGE corptech.cliente_organizacao AS tgt
         USING (VALUES (?, ?, ?, ?, ?, ?, ?, ?)) AS src (
             cd_cliente_organizacao, nm_cliente_organizacao, nr_cnpj, fl_ativo,
@@ -44,50 +42,9 @@ def extract_cliente_organizacao(myTimer: func.TimerRequest) -> None:
             VALUES (src.cd_cliente_organizacao, src.nm_cliente_organizacao, src.nr_cnpj, src.fl_ativo,
                     src.dt_inclusao, src.dt_atualizacao, src.nm_sistema_origem, src.cd_registro_origem);
     """
- 
-    try:
-        with get_source_connection() as src_conn:
-            rows = src_conn.cursor().execute(SELECT_SQL).fetchall()
- 
-        logging.info(f"extract_cliente_organizacao: {len(rows)} linha(s) lida(s) da origem.")
- 
-        with get_target_connection() as dst_conn:
-            cursor = dst_conn.cursor()
-            cursor.fast_executemany = True
-            cursor.executemany(UPSERT_SQL, rows)
-            dst_conn.commit()
- 
-        logging.info("extract_cliente_organizacao: upsert concluído.")
- 
-    except Exception as e:
-        logging.error(f"extract_cliente_organizacao: erro – {e}")
-        raise
- 
-def get_source_connection() -> pyodbc.Connection:
-    """Abre a conexão com SOURCE banco."""
-    conn_str = (
-        "DRIVER={ODBC Driver 18 for SQL Server};"
-        f"SERVER={os.getenv('SQL_SERVER_SOURCE')};"
-        f"DATABASE={os.getenv('SQL_DATABASE_SOURCE')};"
-        f"UID={os.getenv('SQL_USER_SOURCE')};"
-        f"PWD={os.getenv('SQL_PASSWORD_SOURCE')};"
-        "Encrypt=yes;"
-        "TrustServerCertificate=no;"
-        "Connection Timeout=30;"
-    )
-    return pyodbc.connect(conn_str)
 
 
-def get_target_connection() -> pyodbc.Connection:
-    """Abre a conexão com TARGET banco (corptech schema)."""
-    conn_str = (
-        "DRIVER={ODBC Driver 18 for SQL Server};"
-        f"SERVER={os.getenv('SQL_SERVER_TARGET')};"
-        f"DATABASE={os.getenv('SQL_DATABASE_TARGET')};"
-        f"UID={os.getenv('SQL_USER_TARGET')};"
-        f"PWD={os.getenv('SQL_PASSWORD_TARGET')};"
-        "Encrypt=yes;"
-        "TrustServerCertificate=no;"
-        "Connection Timeout=30;"
-    )
-    return pyodbc.connect(conn_str)
+@app.timer_trigger(schedule="0 0 12 * * *", arg_name="myTimer", run_on_startup=False,
+                   use_monitor=False)
+def extract_cliente_organizacao(myTimer: func.TimerRequest) -> None:
+    ClienteOrganizacaoExtraction().run()

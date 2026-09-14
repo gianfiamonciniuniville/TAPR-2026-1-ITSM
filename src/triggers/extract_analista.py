@@ -1,17 +1,13 @@
-import pyodbc
-import os
-import logging
 import azure.functions as func
+
+from etl.extraction import SqlExtraction
 
 app = func.Blueprint()
 
-@app.timer_trigger(schedule="0 0 12 * * *", arg_name="myTimer", run_on_startup=False,
-                   use_monitor=False)
-def extract_analista(myTimer: func.TimerRequest) -> None:
-    logging.info("extract_analista: iniciando.")
 
-    # Pull analista joined to fila so we can carry the fila code across
-    SELECT_SQL = """
+class AnalistaExtraction(SqlExtraction):
+    def select_sql(self) -> str:
+        return """
         SELECT
             a.cd_analista,
             a.nm_analista,
@@ -27,8 +23,8 @@ def extract_analista(myTimer: func.TimerRequest) -> None:
         LEFT JOIN itsm.fila AS f ON f.id_fila = a.id_fila_atual
     """
 
-    # MERGE using cd_analista; resolve id_fila_atual from the destination fila table
-    UPSERT_SQL = """
+    def upsert_sql(self) -> str:
+        return """
         MERGE corptech.analista AS tgt
         USING (
             SELECT
@@ -67,50 +63,8 @@ def extract_analista(myTimer: func.TimerRequest) -> None:
                     resolved.dt_atualizacao, resolved.nm_sistema_origem, resolved.cd_registro_origem);
     """
 
-    try:
-        with get_source_connection() as src_conn:
-            rows = src_conn.cursor().execute(SELECT_SQL).fetchall()
 
-        logging.info(f"extract_analista: {len(rows)} linha(s) lida(s) da origem.")
-
-        with get_target_connection() as dst_conn:
-            cursor = dst_conn.cursor()
-            cursor.fast_executemany = True
-            cursor.executemany(UPSERT_SQL, rows)
-            dst_conn.commit()
-
-        logging.info("extract_analista: upsert concluído.")
-
-    except Exception as e:
-        logging.error(f"extract_analista: erro – {e}")
-        raise
-
-
-def get_source_connection() -> pyodbc.Connection:
-    """Abre a conexão com SOURCE banco."""
-    conn_str = (
-        "DRIVER={ODBC Driver 18 for SQL Server};"
-        f"SERVER={os.getenv('SQL_SERVER_SOURCE')};"
-        f"DATABASE={os.getenv('SQL_DATABASE_SOURCE')};"
-        f"UID={os.getenv('SQL_USER_SOURCE')};"
-        f"PWD={os.getenv('SQL_PASSWORD_SOURCE')};"
-        "Encrypt=yes;"
-        "TrustServerCertificate=no;"
-        "Connection Timeout=30;"
-    )
-    return pyodbc.connect(conn_str)
-
-
-def get_target_connection() -> pyodbc.Connection:
-    """Abre a conexão com TARGET banco (corptech schema)."""
-    conn_str = (
-        "DRIVER={ODBC Driver 18 for SQL Server};"
-        f"SERVER={os.getenv('SQL_SERVER_TARGET')};"
-        f"DATABASE={os.getenv('SQL_DATABASE_TARGET')};"
-        f"UID={os.getenv('SQL_USER_TARGET')};"
-        f"PWD={os.getenv('SQL_PASSWORD_TARGET')};"
-        "Encrypt=yes;"
-        "TrustServerCertificate=no;"
-        "Connection Timeout=30;"
-    )
-    return pyodbc.connect(conn_str)
+@app.timer_trigger(schedule="0 0 12 * * *", arg_name="myTimer", run_on_startup=False,
+                   use_monitor=False)
+def extract_analista(myTimer: func.TimerRequest) -> None:
+    AnalistaExtraction().run()

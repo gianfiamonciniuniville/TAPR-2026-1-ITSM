@@ -9,6 +9,14 @@ IT Service Management
 
 ---
 
+# Padrão de projeto GoF
+
+Foi aplicado **Template Method** às 11 extrações SQL. A classe `SqlExtraction`
+centraliza leitura, carga, transação e fechamento dos recursos; cada subclasse
+fornece as consultas da sua entidade.
+
+---
+
 # Atividade de Documentação Arquitetural
 
 ### ADR's
@@ -17,6 +25,7 @@ IT Service Management
 - [adrr002-database](./docs/adr002-database.md)
 - [adr003-azure-function](./docs/adr003-azure-function.md)
 - [adr004-power-bi](./docs/adr004-power-bi.md)
+- [adr005-template-method](./docs/adr005-template-method.md)
 
 ### C4 Diagram
 
