@@ -1,13 +1,8 @@
-import azure.functions as func
+from etl.contracts import ExtractionDefinition
 
-from etl.extraction import SqlExtraction
-
-app = func.Blueprint()
-
-
-class SolicitanteExtraction(SqlExtraction):
-    def select_sql(self) -> str:
-        return """
+DEFINITION = ExtractionDefinition(
+    name='solicitante',
+    select_sql="""
         SELECT
             s.cd_solicitante,
             co.cd_cliente_organizacao,   -- natural key for FK resolution
@@ -22,10 +17,8 @@ class SolicitanteExtraction(SqlExtraction):
         FROM itsm.solicitante AS s
         INNER JOIN itsm.cliente_organizacao AS co
                ON co.id_cliente_organizacao = s.id_cliente_organizacao
-    """
-
-    def upsert_sql(self) -> str:
-        return """
+    """,
+    upsert_sql="""
         MERGE corptech.solicitante AS tgt
         USING (
             SELECT
@@ -65,10 +58,5 @@ class SolicitanteExtraction(SqlExtraction):
             VALUES (resolved.cd_solicitante, resolved.id_cliente_organizacao, resolved.nm_solicitante,
                     resolved.ds_email, resolved.ds_telefone, resolved.fl_ativo, resolved.dt_inclusao,
                     resolved.dt_atualizacao, resolved.nm_sistema_origem, resolved.cd_registro_origem);
-    """
-
-
-@app.timer_trigger(schedule="0 0 12 * * *", arg_name="myTimer", run_on_startup=False,
-                   use_monitor=False)
-def extract_solicitante(myTimer: func.TimerRequest) -> None:
-    SolicitanteExtraction().run()
+    """,
+)

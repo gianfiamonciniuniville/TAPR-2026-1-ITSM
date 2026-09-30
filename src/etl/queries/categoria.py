@@ -1,13 +1,8 @@
-import azure.functions as func
+from etl.contracts import ExtractionDefinition
 
-from etl.extraction import SqlExtraction
-
-app = func.Blueprint()
-
-
-class CategoriaExtraction(SqlExtraction):
-    def select_sql(self) -> str:
-        return """
+DEFINITION = ExtractionDefinition(
+    name='categoria',
+    select_sql="""
         SELECT
             cd_categoria,
             nm_categoria,
@@ -18,10 +13,8 @@ class CategoriaExtraction(SqlExtraction):
             nm_sistema_origem,
             cd_registro_origem
         FROM itsm.categoria
-    """
-
-    def upsert_sql(self) -> str:
-        return """
+    """,
+    upsert_sql="""
         MERGE corptech.categoria AS tgt
         USING (VALUES (?, ?, ?, ?, ?, ?, ?, ?)) AS src (
             cd_categoria, nm_categoria, ds_descricao, fl_ativo,
@@ -41,10 +34,5 @@ class CategoriaExtraction(SqlExtraction):
                     dt_inclusao, dt_atualizacao, nm_sistema_origem, cd_registro_origem)
             VALUES (src.cd_categoria, src.nm_categoria, src.ds_descricao, src.fl_ativo,
                     src.dt_inclusao, src.dt_atualizacao, src.nm_sistema_origem, src.cd_registro_origem);
-    """
-
-
-@app.timer_trigger(schedule="0 0 12 * * *", arg_name="myTimer", run_on_startup=False,
-                   use_monitor=False)
-def extract_categoria(myTimer: func.TimerRequest) -> None:
-    CategoriaExtraction().run()
+    """,
+)

@@ -1,27 +1,8 @@
-import azure.functions as func
+from etl.contracts import ExtractionDefinition
 
-from etl.extraction import SqlExtraction
-
-app = func.Blueprint()
-
-
-class ChamadoStatusHistoricoExtraction(SqlExtraction):
-    """Lê todo o histórico de status dos chamados e faz upsert em
-    corptech.chamado_status_historico.
-    
-    FKs resolvidas por chave natural:
-      - id_chamado              <- nr_chamado
-      - id_analista_responsavel <- cd_analista
-      - id_fila                 <- cd_fila
-    
-    Chave do MERGE: cd_registro_origem (identificador único vindo do sistema de origem).
-    
-    ATENÇÃO: ds_status_chamado tem CHECK constraint no destino.
-    Valores aceitos: OPEN, IN_PROGRESS, PENDING, RESOLVED, CLOSED, CANCELLED.
-    """
-
-    def select_sql(self) -> str:
-        return """
+DEFINITION = ExtractionDefinition(
+    name='chamado_status_historico',
+    select_sql="""
         SELECT
             c.nr_chamado,
             csh.ds_status_chamado,
@@ -38,10 +19,8 @@ class ChamadoStatusHistoricoExtraction(SqlExtraction):
         INNER JOIN itsm.chamado  AS c ON c.id_chamado  = csh.id_chamado
         LEFT JOIN  itsm.analista AS a ON a.id_analista = csh.id_analista_responsavel
         LEFT JOIN  itsm.fila     AS f ON f.id_fila     = csh.id_fila
-    """
-
-    def upsert_sql(self) -> str:
-        return """
+    """,
+    upsert_sql="""
         MERGE corptech.chamado_status_historico AS tgt
         USING (
             SELECT
@@ -90,10 +69,5 @@ class ChamadoStatusHistoricoExtraction(SqlExtraction):
                 resolved.dt_inclusao, resolved.dt_atualizacao,
                 resolved.nm_sistema_origem, resolved.cd_registro_origem
             );
-    """
-
-
-@app.timer_trigger(schedule="0 20 12 * * *", arg_name="myTimer", run_on_startup=False,
-                   use_monitor=False)
-def extract_chamado_status_historico(myTimer: func.TimerRequest) -> None:
-    ChamadoStatusHistoricoExtraction().run()
+    """,
+)

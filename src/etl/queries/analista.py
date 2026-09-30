@@ -1,13 +1,8 @@
-import azure.functions as func
+from etl.contracts import ExtractionDefinition
 
-from etl.extraction import SqlExtraction
-
-app = func.Blueprint()
-
-
-class AnalistaExtraction(SqlExtraction):
-    def select_sql(self) -> str:
-        return """
+DEFINITION = ExtractionDefinition(
+    name='analista',
+    select_sql="""
         SELECT
             a.cd_analista,
             a.nm_analista,
@@ -21,10 +16,8 @@ class AnalistaExtraction(SqlExtraction):
             a.cd_registro_origem
         FROM itsm.analista AS a
         LEFT JOIN itsm.fila AS f ON f.id_fila = a.id_fila_atual
-    """
-
-    def upsert_sql(self) -> str:
-        return """
+    """,
+    upsert_sql="""
         MERGE corptech.analista AS tgt
         USING (
             SELECT
@@ -61,10 +54,5 @@ class AnalistaExtraction(SqlExtraction):
             VALUES (resolved.cd_analista, resolved.nm_analista, resolved.ds_email, resolved.ds_nivel,
                     resolved.id_fila_atual, resolved.fl_ativo, resolved.dt_inclusao,
                     resolved.dt_atualizacao, resolved.nm_sistema_origem, resolved.cd_registro_origem);
-    """
-
-
-@app.timer_trigger(schedule="0 0 12 * * *", arg_name="myTimer", run_on_startup=False,
-                   use_monitor=False)
-def extract_analista(myTimer: func.TimerRequest) -> None:
-    AnalistaExtraction().run()
+    """,
+)

@@ -1,23 +1,8 @@
-import azure.functions as func
+from etl.contracts import ExtractionDefinition
 
-from etl.extraction import SqlExtraction
-
-app = func.Blueprint()
-
-
-class ChamadoExtraction(SqlExtraction):
-    """Lê todos os chamados da origem e faz upsert em corptech.chamado.
-    
-    FKs resolvidas por chave natural:
-      - id_analista_atual      <- cd_analista
-      - id_reporter            <- cd_solicitante
-      - id_categoria           <- cd_categoria
-      - id_cliente_organizacao <- cd_cliente_organizacao
-      - id_fila_atual          <- cd_fila
-    """
-
-    def select_sql(self) -> str:
-        return """
+DEFINITION = ExtractionDefinition(
+    name='chamado',
+    select_sql="""
         SELECT
             c.nr_chamado,
             c.ds_tipo_chamado,
@@ -43,10 +28,8 @@ class ChamadoExtraction(SqlExtraction):
         LEFT JOIN  itsm.categoria            AS cat ON cat.id_categoria          = c.id_categoria
         INNER JOIN itsm.cliente_organizacao  AS co  ON co.id_cliente_organizacao = c.id_cliente_organizacao
         LEFT JOIN  itsm.fila                 AS f   ON f.id_fila                 = c.id_fila_atual
-    """
-
-    def upsert_sql(self) -> str:
-        return """
+    """,
+    upsert_sql="""
         MERGE corptech.chamado AS tgt
         USING (
             SELECT
@@ -119,10 +102,5 @@ class ChamadoExtraction(SqlExtraction):
                 resolved.ds_titulo, resolved.ds_descricao, resolved.dt_inclusao,
                 resolved.dt_atualizacao, resolved.nm_sistema_origem, resolved.cd_registro_origem
             );
-    """
-
-
-@app.timer_trigger(schedule="0 10 12 * * *", arg_name="myTimer", run_on_startup=False,
-                   use_monitor=False)
-def extract_chamado(myTimer: func.TimerRequest) -> None:
-    ChamadoExtraction().run()
+    """,
+)

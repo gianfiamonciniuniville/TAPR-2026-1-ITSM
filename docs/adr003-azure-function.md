@@ -1,33 +1,22 @@
-# ADR-003: [Azure Function]
+# ADR-003: Azure Functions
 
-**Status:** [Aceito] | **Data:** [12-09-2025] | **Autores:** [Gian
-(Desenvolvedor)]
+**Status:** Aceito | **Data:** 12-09-2025 | **Autor:** Gian
 
 ## Contexto
 
-Precisamos de um SAAS que tinha fácil configuração e na execução de scripts
-pequenos, porém separados.
+Precisamos executar pequenos scripts Python em horários definidos para
+extrair e carregar dados.
 
 ## Decisão
 
-Foi decidido Azure Functions por causa da facilidade;
+Usar Azure Functions com triggers de timer. As 11 triggers ficam em
+`src/function_app.py` e chamam `run_extraction()` para executar o ETL
+usando [Strategy](adr006-strategy.md).
 
 ## Consequências
 
-(+) Roda
+- Os scripts podem ser executados automaticamente nos horários configurados.
+- A execução depende da configuração do Azure e do acesso ao SQL Server.
+- Os horários não garantem a ordem de execução entre entidades dependentes.
 
-(+) Suporte com a linguagem requirida.
-
-(-) Rodar em produção
-
-(-) A integração com Azure e SQL Server requer ambiente configurado.
-
-O fluxo de extração possui testes unitários locais após a aplicação de
-[Template Method (ADR-005)](./adr005-template-method.md). Os timers delegam
-a execução às subclasses de `SqlExtraction`.
-
-## Alternativas rejeitadas
-
-## Links
-
-- Relacionado: [adrr001-cloud](./adr001-cloud.md)
+Decisão de nuvem: [ADR-001](adr001-cloud.md).

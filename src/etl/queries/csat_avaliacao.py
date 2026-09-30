@@ -1,22 +1,8 @@
-import azure.functions as func
+from etl.contracts import ExtractionDefinition
 
-from etl.extraction import SqlExtraction
-
-app = func.Blueprint()
-
-
-class CsatAvaliacaoExtraction(SqlExtraction):
-    """Lê todas as avaliações CSAT da origem e faz upsert em corptech.csat_avaliacao.
-    
-    FKs resolvidas por chave natural:
-      - id_chamado  <- nr_chamado
-      - id_analista <- cd_analista
-    
-    Chave do MERGE: cd_registro_origem (identificador único vindo do sistema de origem).
-    """
-
-    def select_sql(self) -> str:
-        return """
+DEFINITION = ExtractionDefinition(
+    name='csat_avaliacao',
+    select_sql="""
         SELECT
             c.nr_chamado,
             a.cd_analista,
@@ -30,10 +16,8 @@ class CsatAvaliacaoExtraction(SqlExtraction):
         FROM itsm.csat_avaliacao AS ca
         INNER JOIN itsm.chamado  AS c ON c.id_chamado  = ca.id_chamado
         LEFT JOIN  itsm.analista AS a ON a.id_analista = ca.id_analista
-    """
-
-    def upsert_sql(self) -> str:
-        return """
+    """,
+    upsert_sql="""
         MERGE corptech.csat_avaliacao AS tgt
         USING (
             SELECT
@@ -75,10 +59,5 @@ class CsatAvaliacaoExtraction(SqlExtraction):
                 resolved.ds_comentario, resolved.dt_avaliacao, resolved.dt_inclusao,
                 resolved.dt_atualizacao, resolved.nm_sistema_origem, resolved.cd_registro_origem
             );
-    """
-
-
-@app.timer_trigger(schedule="0 20 12 * * *", arg_name="myTimer", run_on_startup=False,
-                   use_monitor=False)
-def extract_csat_avaliacao(myTimer: func.TimerRequest) -> None:
-    CsatAvaliacaoExtraction().run()
+    """,
+)

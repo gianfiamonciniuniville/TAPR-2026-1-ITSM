@@ -1,13 +1,8 @@
-import azure.functions as func
+from etl.contracts import ExtractionDefinition
 
-from etl.extraction import SqlExtraction
-
-app = func.Blueprint()
-
-
-class ClienteOrganizacaoExtraction(SqlExtraction):
-    def select_sql(self) -> str:
-        return """
+DEFINITION = ExtractionDefinition(
+    name='cliente_organizacao',
+    select_sql="""
         SELECT
             cd_cliente_organizacao,
             nm_cliente_organizacao,
@@ -18,10 +13,8 @@ class ClienteOrganizacaoExtraction(SqlExtraction):
             nm_sistema_origem,
             cd_registro_origem
         FROM itsm.cliente_organizacao
-    """
-
-    def upsert_sql(self) -> str:
-        return """
+    """,
+    upsert_sql="""
         MERGE corptech.cliente_organizacao AS tgt
         USING (VALUES (?, ?, ?, ?, ?, ?, ?, ?)) AS src (
             cd_cliente_organizacao, nm_cliente_organizacao, nr_cnpj, fl_ativo,
@@ -41,10 +34,5 @@ class ClienteOrganizacaoExtraction(SqlExtraction):
                     dt_inclusao, dt_atualizacao, nm_sistema_origem, cd_registro_origem)
             VALUES (src.cd_cliente_organizacao, src.nm_cliente_organizacao, src.nr_cnpj, src.fl_ativo,
                     src.dt_inclusao, src.dt_atualizacao, src.nm_sistema_origem, src.cd_registro_origem);
-    """
-
-
-@app.timer_trigger(schedule="0 0 12 * * *", arg_name="myTimer", run_on_startup=False,
-                   use_monitor=False)
-def extract_cliente_organizacao(myTimer: func.TimerRequest) -> None:
-    ClienteOrganizacaoExtraction().run()
+    """,
+)

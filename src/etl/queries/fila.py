@@ -1,13 +1,8 @@
-import azure.functions as func
+from etl.contracts import ExtractionDefinition
 
-from etl.extraction import SqlExtraction
-
-app = func.Blueprint()
-
-
-class FilaExtraction(SqlExtraction):
-    def select_sql(self) -> str:
-        return """
+DEFINITION = ExtractionDefinition(
+    name='fila',
+    select_sql="""
         SELECT
             cd_fila,
             nm_fila,
@@ -18,10 +13,8 @@ class FilaExtraction(SqlExtraction):
             nm_sistema_origem,
             cd_registro_origem
         FROM itsm.fila
-    """
-
-    def upsert_sql(self) -> str:
-        return """
+    """,
+    upsert_sql="""
         MERGE corptech.fila AS tgt
         USING (VALUES (?, ?, ?, ?, ?, ?, ?, ?)) AS src (
             cd_fila, nm_fila, ds_descricao, fl_ativo,
@@ -41,10 +34,5 @@ class FilaExtraction(SqlExtraction):
                     dt_inclusao, dt_atualizacao, nm_sistema_origem, cd_registro_origem)
             VALUES (src.cd_fila, src.nm_fila, src.ds_descricao, src.fl_ativo,
                     src.dt_inclusao, src.dt_atualizacao, src.nm_sistema_origem, src.cd_registro_origem);
-    """
-
-
-@app.timer_trigger(schedule="0 30 12 * * *", arg_name="myTimer", run_on_startup=False,
-                   use_monitor=False)
-def extract_fila(myTimer: func.TimerRequest) -> None:
-    FilaExtraction().run()
+    """,
+)

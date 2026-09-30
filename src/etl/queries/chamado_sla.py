@@ -1,22 +1,8 @@
-import azure.functions as func
+from etl.contracts import ExtractionDefinition
 
-from etl.extraction import SqlExtraction
-
-app = func.Blueprint()
-
-
-class ChamadoSlaExtraction(SqlExtraction):
-    """Lê todos os registros de SLA por chamado e faz upsert em corptech.chamado_sla.
-    
-    FKs resolvidas por chave natural:
-      - id_chamado <- nr_chamado
-      - id_sla     <- cd_sla
-    
-    Chave do MERGE: cd_registro_origem (identificador único vindo do sistema de origem).
-    """
-
-    def select_sql(self) -> str:
-        return """
+DEFINITION = ExtractionDefinition(
+    name='chamado_sla',
+    select_sql="""
         SELECT
             c.nr_chamado,
             s.cd_sla,
@@ -32,10 +18,8 @@ class ChamadoSlaExtraction(SqlExtraction):
         FROM itsm.chamado_sla AS cs
         INNER JOIN itsm.chamado AS c ON c.id_chamado = cs.id_chamado
         INNER JOIN itsm.sla     AS s ON s.id_sla     = cs.id_sla
-    """
-
-    def upsert_sql(self) -> str:
-        return """
+    """,
+    upsert_sql="""
         MERGE corptech.chamado_sla AS tgt
         USING (
             SELECT
@@ -84,10 +68,5 @@ class ChamadoSlaExtraction(SqlExtraction):
                 resolved.qt_meta_minutos, resolved.dt_referencia, resolved.dt_inclusao,
                 resolved.dt_atualizacao, resolved.nm_sistema_origem, resolved.cd_registro_origem
             );
-    """
-
-
-@app.timer_trigger(schedule="0 20 12 * * *", arg_name="myTimer", run_on_startup=False,
-                   use_monitor=False)
-def extract_chamado_sla(myTimer: func.TimerRequest) -> None:
-    ChamadoSlaExtraction().run()
+    """,
+)
